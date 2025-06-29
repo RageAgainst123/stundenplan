@@ -24,6 +24,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            position: relative;
         }
 
         h1 {
@@ -92,6 +93,12 @@
         .filter-btn.show-all:hover {
             background-color: #218838;
             border-color: #218838;
+        }
+
+        #darkModeToggle {
+            position: absolute;
+            top: 10px;
+            right: 20px;
         }
 
         .schedule-container {
@@ -494,11 +501,11 @@
     <div class="container">
         <h1>MS Schwarzau im Gebirge - Stundenplan 2025/2026</h1>
         
+        <button id="darkModeToggle" class="filter-btn">Dark Mode</button>
         <div class="filter-section">
             <div class="filter-buttons" id="filterButtons">
                 <!-- Filter-Buttons werden dynamisch erstellt -->
             </div>
-            <button id="darkModeToggle" class="filter-btn">Dark Mode</button>
         </div>
 
         <!-- Mobile Day Navigation -->
@@ -512,6 +519,12 @@
         <div class="schedule-container">
             <table class="schedule-table" id="scheduleTable">
                 <!-- Stundenplan wird dynamisch erstellt -->
+            </table>
+        </div>
+
+        <div class="schedule-container" id="verticalScheduleContainer" style="display:none;">
+            <table class="schedule-table" id="verticalScheduleTable">
+                <!-- Vertikaler Stundenplan wird dynamisch erstellt -->
             </table>
         </div>
 
@@ -537,13 +550,13 @@
         ];
 
         const dayIcons = {
-            'Montag': '🌞',
-            'Dienstag': '🚀',
-            'Mittwoch': '🐫',
-            'Donnerstag': '⚡',
-            'Freitag': '🎉'
+            'Montag': '①',
+            'Dienstag': '②',
+            'Mittwoch': '③',
+            'Donnerstag': '④',
+            'Freitag': '⑤'
         };
-        const timeIcon = '⏰';
+        const timeIcon = '🕒';
 
         // Stundenplan-Daten
         const scheduleData = {
@@ -804,7 +817,7 @@
             
             scheduleData.days.forEach(day => {
                 const dayCell = createHeaderCell(`${dayIcons[day]} ${day}`, 'day-header');
-                dayCell.colSpan = 4;
+                dayCell.colSpan = scheduleData.grades.length;
                 headerRow.appendChild(dayCell);
             });
             
@@ -1006,6 +1019,27 @@
             container.appendChild(select);
         }
 
+        // Auswahl der Ansicht (horizontal oder vertikal)
+        function createViewSelect() {
+            const container = document.querySelector('.filter-section');
+            const select = document.createElement('select');
+            select.id = 'viewSelect';
+            select.className = 'filter-select';
+
+            const optH = document.createElement('option');
+            optH.value = 'horizontal';
+            optH.textContent = 'Horizontal';
+            select.appendChild(optH);
+
+            const optV = document.createElement('option');
+            optV.value = 'vertical';
+            optV.textContent = 'Vertikal';
+            select.appendChild(optV);
+
+            select.addEventListener('change', updateViewMode);
+            container.appendChild(select);
+        }
+
         function updateGradeView() {
             const select = document.getElementById('gradeSelect');
             if (!select) return;
@@ -1017,6 +1051,61 @@
                     el.style.display = 'none';
                 }
             });
+
+            const visible = value === 'all' ? scheduleData.grades.length : 1;
+            document.querySelectorAll('.schedule-table .day-header').forEach(h => {
+                h.colSpan = visible;
+            });
+        }
+
+        function updateViewMode() {
+            const select = document.getElementById('viewSelect');
+            if (!select) return;
+            const value = select.value;
+            const horiz = document.querySelector('.schedule-container');
+            const vert = document.getElementById('verticalScheduleContainer');
+            const gradeSelect = document.getElementById('gradeSelect');
+
+            if (value === 'vertical') {
+                horiz.style.display = 'none';
+                vert.style.display = 'block';
+                if (gradeSelect) gradeSelect.style.display = 'none';
+            } else {
+                horiz.style.display = 'block';
+                vert.style.display = 'none';
+                if (gradeSelect) gradeSelect.style.display = '';
+            }
+        }
+
+        function createVerticalScheduleTable() {
+            const container = document.getElementById('verticalScheduleTable');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const headerRow = document.createElement('tr');
+            headerRow.appendChild(createHeaderCell('Tag', 'time-column'));
+            scheduleData.times.forEach(time => {
+                headerRow.appendChild(createHeaderCell(`${timeIcon} ${time}`, 'time-column'));
+            });
+            container.appendChild(headerRow);
+
+            scheduleData.days.forEach(day => {
+                const row = document.createElement('tr');
+                row.appendChild(createHeaderCell(`${dayIcons[day]} ${day}`, 'day-header'));
+                scheduleData.times.forEach(time => {
+                    const cell = document.createElement('td');
+                    const entries = scheduleData.schedule[day][time] || ['', '', '', ''];
+                    cell.className = 'schedule-cell';
+                    cell.innerHTML = entries.map(d => {
+                        const p = parseCellData(d);
+                        if (p.subject === '') return '';
+                        const tc = p.teacher ? `teacher-${p.teacher}` : '';
+                        return `<div class="${tc}">${p.subject}${p.teacher || ''}</div>`;
+                    }).join('');
+                    row.appendChild(cell);
+                });
+                container.appendChild(row);
+            });
         }
 
         // Initialisierung
@@ -1024,10 +1113,13 @@
             createFilterButtons();
             createDayNavigation();
             createGradeSelect();
+            createViewSelect();
             createScheduleTable();
+            createVerticalScheduleTable();
             createMobileScheduleTables();
             setupDarkModeToggle();
             updateGradeView();
+            updateViewMode();
             highlightCurrentTime();
             setInterval(highlightCurrentTime, 60000);
         });
