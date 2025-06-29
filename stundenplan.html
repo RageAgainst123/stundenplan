@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MS Schwarzau im Gebirge - Stundenplan 2025/2026</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 98vw;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .filter-section {
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            min-width: 100px;
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .filter-btn.active {
+            border-color: #007bff;
+            background-color: #007bff;
+            color: white;
+        }
+
+        .filter-btn.show-all {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+            font-weight: bold;
+        }
+
+        .filter-btn.show-all:hover {
+            background-color: #218838;
+            border-color: #218838;
+        }
+
+        .schedule-container {
+            padding: 20px;
+            overflow-x: auto;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            table-layout: fixed;
+        }
+
+        .schedule-table th,
+        .schedule-table td {
+            border: 1px solid #ddd;
+            padding: 8px 4px;
+            text-align: center;
+            vertical-align: middle;
+            position: relative;
+            font-size: 0.85em;
+        }
+
+        /* Zeit-Spalte feste Breite */
+        .schedule-table th:first-child,
+        .schedule-table td:first-child {
+            width: 80px;
+            min-width: 80px;
+            max-width: 80px;
+        }
+
+        /* Alle anderen Spalten gleichmäßig aufteilen */
+        .schedule-table th:not(:first-child),
+        .schedule-table td:not(:first-child) {
+            width: calc((100% - 80px) / 20);
+        }
+
+        .schedule-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .time-column {
+            background-color: #e9ecef;
+            font-weight: bold;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        .day-header {
+            background-color: #495057;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 3px solid #333;
+        }
+
+        .grade-header {
+            background-color: #6c757d;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Stärkere Trennlinien zwischen den Tagen */
+        /* 8. Schulstufe Montag (5. Spalte insgesamt: 1 Zeit + 4 Montag) */
+        .schedule-table tr:nth-child(2) th:nth-child(5),
+        .schedule-table tr:nth-child(n+3) td:nth-child(5) {
+            border-right: 3px solid #495057 !important;
+        }
+
+        /* 8. Schulstufe Dienstag (9. Spalte insgesamt: 1 Zeit + 4 Montag + 4 Dienstag) */
+        .schedule-table tr:nth-child(2) th:nth-child(9),
+        .schedule-table tr:nth-child(n+3) td:nth-child(9) {
+            border-right: 3px solid #495057 !important;
+        }
+
+        /* 8. Schulstufe Mittwoch (13. Spalte insgesamt: 1 Zeit + 4 Montag + 4 Dienstag + 4 Mittwoch) */
+        .schedule-table tr:nth-child(2) th:nth-child(13),
+        .schedule-table tr:nth-child(n+3) td:nth-child(13) {
+            border-right: 3px solid #495057 !important;
+        }
+
+        /* 8. Schulstufe Donnerstag (17. Spalte insgesamt: 1 Zeit + 4 Montag + 4 Dienstag + 4 Mittwoch + 4 Donnerstag) */
+        .schedule-table tr:nth-child(2) th:nth-child(17),
+        .schedule-table tr:nth-child(n+3) td:nth-child(17) {
+            border-right: 3px solid #495057 !important;
+        }
+
+        /* Keine dicke Trennlinie für 8. Schulstufe Freitag (21. Spalte) - das ist die letzte Spalte */
+
+        .schedule-cell {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .schedule-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .schedule-cell.filtered {
+            opacity: 0.3;
+            filter: grayscale(50%);
+        }
+
+        .schedule-cell.highlighted {
+            border: 3px solid currentColor;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transform: scale(1.02);
+        }
+
+        .empty-cell {
+            background-color: #f8f9fa;
+            color: #6c757d;
+        }
+
+        /* Lehrer-Farben */
+        .teacher-1 { background-color: #ff69b4; color: white; }
+        .teacher-2 { background-color: #90ee90; color: #333; }
+        .teacher-3 { background-color: #ffd700; color: #333; }
+        .teacher-4 { background-color: #228b22; color: white; }
+        .teacher-5 { background-color: #dc143c; color: white; }
+        .teacher-6 { background-color: #f5deb3; color: #333; }
+        .teacher-7 { background-color: #9370db; color: white; }
+        .teacher-8 { background-color: #87ceeb; color: #333; }
+        .teacher-9 { background-color: #8b4513; color: white; }
+        .teacher-10 { background-color: #40e0d0; color: #333; }
+
+        /* Mobile Navigation */
+        .mobile-day-navigation {
+            display: none;
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .day-tabs {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .day-tab {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .day-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .day-tab.active {
+            border-color: #007bff;
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Mobile Schedule Container */
+        .mobile-schedule-container {
+            display: none;
+            padding: 20px;
+        }
+
+        .mobile-day-title {
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #495057;
+        }
+
+        .mobile-schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-schedule-table th,
+        .mobile-schedule-table td {
+            border: 1px solid #ddd;
+            padding: 12px 8px;
+            text-align: center;
+            vertical-align: middle;
+            font-size: 0.9em;
+        }
+
+        .mobile-schedule-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .mobile-time-column {
+            background-color: #e9ecef;
+            font-weight: bold;
+            width: 100px;
+        }
+
+        .mobile-grade-header {
+            background-color: #6c757d;
+            color: white;
+            font-weight: bold;
+        }
+
+        .mobile-schedule-cell {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .mobile-schedule-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .mobile-schedule-cell.filtered {
+            opacity: 0.3;
+            filter: grayscale(50%);
+        }
+
+        .mobile-schedule-cell.highlighted {
+            border: 3px solid currentColor;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            transform: scale(1.02);
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100vw;
+                margin: 0;
+                border-radius: 0;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                padding: 20px;
+            }
+
+            .filter-buttons {
+                display: flex;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 8px;
+                justify-content: flex-start;
+                padding: 0 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .filter-btn {
+                flex-shrink: 0;
+                min-width: 90px;
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+
+            /* Desktop Tabelle ausblenden */
+            .schedule-container {
+                display: none;
+            }
+
+            /* Mobile Navigation einblenden */
+            .mobile-day-navigation {
+                display: block;
+            }
+
+            /* Mobile Schedule Container einblenden */
+            .mobile-schedule-container {
+                display: block;
+            }
+
+            .mobile-schedule-table th,
+            .mobile-schedule-table td {
+                padding: 8px 4px;
+                font-size: 0.8em;
+            }
+
+            .mobile-time-column {
+                width: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                padding: 15px;
+            }
+
+            .filter-buttons {
+                gap: 6px;
+                padding: 0 5px;
+            }
+
+            .filter-btn {
+                min-width: 80px;
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
+
+            .day-tabs {
+                gap: 3px;
+            }
+
+            .day-tab {
+                padding: 8px 12px;
+                min-width: 40px;
+                font-size: 0.9em;
+            }
+
+            .mobile-schedule-table th,
+            .mobile-schedule-table td {
+                padding: 6px 3px;
+                font-size: 0.75em;
+            }
+
+            .mobile-time-column {
+                width: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MS Schwarzau im Gebirge - Stundenplan 2025/2026</h1>
+        
+        <div class="filter-section">
+            <div class="filter-buttons" id="filterButtons">
+                <!-- Filter-Buttons werden dynamisch erstellt -->
+            </div>
+        </div>
+
+        <!-- Mobile Day Navigation -->
+        <div class="mobile-day-navigation">
+            <div class="day-tabs" id="dayTabs">
+                <!-- Day tabs werden dynamisch erstellt -->
+            </div>
+        </div>
+        
+        <!-- Desktop Schedule Container -->
+        <div class="schedule-container">
+            <table class="schedule-table" id="scheduleTable">
+                <!-- Stundenplan wird dynamisch erstellt -->
+            </table>
+        </div>
+
+        <!-- Mobile Schedule Containers -->
+        <div class="mobile-schedule-container" id="mobileScheduleContainer">
+            <!-- Mobile schedules werden dynamisch erstellt -->
+        </div>
+    </div>
+
+    <script>
+        // Lehrer-Daten mit Namen und Nummern
+        const teachers = [
+            { id: 1, name: 'NAGL', color: '#ff69b4' },
+            { id: 2, name: 'KOPP', color: '#90ee90' },
+            { id: 3, name: 'KOLBINGER', color: '#ffd700' },
+            { id: 4, name: 'VARGA', color: '#228b22' },
+            { id: 5, name: 'PLAN', color: '#dc143c' },
+            { id: 6, name: 'ERTL', color: '#f5deb3' },
+            { id: 7, name: 'SLANAR', color: '#9370db' },
+            { id: 8, name: 'SCHLEGEL', color: '#87ceeb' },
+            { id: 9, name: 'SIMON', color: '#8b4513' },
+            { id: 10, name: 'PLAN', color: '#40e0d0' }
+        ];
+
+        // Stundenplan-Daten
+        const scheduleData = {
+            times: [
+                '08:00-08:50', '08:55-09:45', '09:50-10:40', '10:55-11:45',
+                '11:50-12:40', '12:45-13:35', '14:00-14:50', '14:55-15:45'
+            ],
+            days: ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag'],
+            grades: ['5. Schulstufe', '6. Schulstufe', '7. Schulstufe', '8. Schulstufe'],
+            schedule: {
+                'Montag': {
+                    '08:00-08:50': ['E 2 (5)', 'M5 (6)', 'D 3 (7)', 'KGE 1(8)'],
+                    '08:55-09:45': ['D7 (5)', 'GW 2 (6)', 'E 4(7)', 'D 3(8)'],
+                    '09:50-10:40': ['M5 (5)', 'BUB 10 (6)', 'E 4(7)', 'D 3(8)'],
+                    '10:55-11:45': ['BSP1 (5)', 'E 4 (6)', 'PH 5(7)', 'E 2(8)'],
+                    '11:50-12:40': ['D7 (5)', 'E 4 (6)', 'GW 2(7)', 'PH 5(8)'],
+                    '12:45-13:35': ['DGB 2 (5,6)', 'DGB 2 (5,6)', 'BUB 10 (7)', 'CH 5 (8)'],
+                    '14:00-14:50': ['', '', 'BBO 4(7)', 'BBO 4(8)'],
+                    '14:55-15:45': ['', '', '', '']
+                },
+                'Dienstag': {
+                    '08:00-08:50': ['M5 (5)', 'D7 (6)', 'D 3(7)', 'M6(8)'],
+                    '08:55-09:45': ['E 2 (5)', 'D7 (6)', 'GPB 3(7)', 'M6(8)'],
+                    '09:50-10:40': ['D7 (5)', 'M5 (6)', 'M 6(7)', 'E 2(8)'],
+                    '10:55-11:45': ['TD 5 (5)', 'TD 2 (6)', 'M 6(7)', 'D 3(8)'],
+                    '11:50-12:40': ['TD 5 (5)', 'TD 2 (6)', 'DGB 6 (7,8)', 'DGB 6 (7,8)'],
+                    '12:45-13:35': ['', 'GPB 4 (6)', 'GZ 6(7)', 'GW 2(8)'],
+                    '14:00-14:50': ['', '', 'KGE 4(7)', 'TD 2(8)'],
+                    '14:55-15:45': ['', '', 'KGE 4(7)', 'TD 2(8)']
+                },
+                'Mittwoch': {
+                    '08:00-08:50': ['BUB 10 (5)', 'M5 (6)', 'E 4(7)', 'E 2(8)'],
+                    '08:55-09:45': ['MU 10 (5,6)', 'MU 10 (5,6)', 'E 4(7)', 'E 2(8)'],
+                    '09:50-10:40': ['REL 9 (5,6)', 'REL 9 (5,6)', 'PH 5(7)', 'GW 2(8)'],
+                    '10:55-11:45': ['REL 9 (5,6)', 'REL 9 (5,6)', 'BSPM 1 (7,8)', 'BSPK8 (7,8)'],
+                    '11:50-12:40': ['BSPM 1 (5,6)', 'BSPK8 (5,6)', 'REL 9 (7,8)', 'REL 9 (7,8)'],
+                    '12:45-13:35': ['BSPM 1 (5,6)', 'BSPK8 (5,6)', 'REL 9 (7,8)', 'REL 9 (7,8)'],
+                    '14:00-14:50': ['', '', '', ''],
+                    '14:55-15:45': ['', '', '', '']
+                },
+                'Donnerstag': {
+                    '08:00-08:50': ['M5 (5)', 'D7 (6)', 'D 3(7)', 'M6(8)'],
+                    '08:55-09:45': ['D7 (5)', 'M5 (6)', 'GPB 3(7)', 'M6(8)'],
+                    '09:50-10:40': ['E 2 (5)', 'KGE 1 (6)', 'M 6(7)', 'BUB 10 (8)'],
+                    '10:55-11:45': ['GW 2 (5)', 'KGE 1 (6)', 'M 6(7)', 'CH 5 (8)'],
+                    '11:50-12:40': ['KGE 5 (5)', 'BUB 10 (6)', 'D 3(7)', 'GZ 6(8)'],
+                    '12:45-13:35': ['KGE 5 (5)', 'EH 10 (6,7)', 'EH 10 (6,7)', 'GPB 3(8)'],
+                    '14:00-14:50': ['', 'EH 10 (6,7)', 'EH 10 (6,7)', ''],
+                    '14:55-15:45': ['', 'EH 10 (6,7)', 'EH 10 (6,7)', '']
+                },
+                'Freitag': {
+                    '08:00-08:50': ['BSPM 1 (5,6)', 'BSPK8 (5,6)', 'BUB 10 (7)', 'D3 (8)'],
+                    '08:55-09:45': ['E2 (5)', 'PH 5 (6)', 'BSPM 1 (7,8)', 'BSPK8 (7,8)'],
+                    '09:50-10:40': ['M5 (5)', 'E 4 (6)', 'BSPM 1 (7,8)', 'BSPK8 (7,8)'],
+                    '10:55-11:45': ['BUB 10 (5)', 'D7 (6)', 'GW 2(7)', 'GPB 3(8)'],
+                    '11:50-12:40': ['GW2 (5)', 'E 4 (6)', 'MU 5 (7,8)', 'MU 5 (7,8)'],
+                    '12:45-13:35': ['MU 10 (5,6)', 'MU 10 (5,6)', 'TD 5(7)', ''],
+                    '14:00-14:50': ['', '', 'TD 5(7)', ''],
+                    '14:55-15:45': ['', '', '', '']
+                }
+            }
+        };
+
+        // Globale Variablen für Filter
+        let selectedTeachers = new Set();
+        let showAllActive = true;
+        let currentMobileDay = 'Montag';
+
+        // Funktion zum Parsen der Zellendaten
+        function parseCellData(cellText) {
+            if (!cellText || cellText.trim() === '') {
+                return { subject: '', teacher: null, grades: [] };
+            }
+
+            // Regex für "FACH LEHRER (STUFE)" oder "FACH LEHRER (STUFE1,STUFE2)"
+            const regex = /^([A-Z]+)\s*(\d+)\s*\(([^)]+)\)$/;
+            const match = cellText.trim().match(regex);
+
+            if (match) {
+                const subject = match[1];
+                const teacher = parseInt(match[2]);
+                const gradesStr = match[3];
+                const grades = gradesStr.split(',').map(g => parseInt(g.trim()));
+
+                return { subject, teacher, grades };
+            }
+
+            return { subject: cellText, teacher: null, grades: [] };
+        }
+
+        // Funktion zum Erstellen der Filter-Buttons
+        function createFilterButtons() {
+            const filterContainer = document.getElementById('filterButtons');
+            
+            // "Alle anzeigen" Button
+            const showAllBtn = document.createElement('button');
+            showAllBtn.className = 'filter-btn show-all active';
+            showAllBtn.textContent = 'Alle anzeigen';
+            showAllBtn.onclick = () => toggleShowAll();
+            filterContainer.appendChild(showAllBtn);
+
+            // Lehrer-Buttons
+            teachers.forEach(teacher => {
+                const btn = document.createElement('button');
+                btn.className = 'filter-btn';
+                btn.textContent = `${teacher.name} ${teacher.id}`;
+                btn.style.borderColor = teacher.color;
+                btn.onclick = () => toggleTeacher(teacher.id);
+                filterContainer.appendChild(btn);
+            });
+        }
+
+        // Funktion zum Erstellen der Tages-Navigation
+        function createDayNavigation() {
+            const dayTabsContainer = document.getElementById('dayTabs');
+            
+            scheduleData.days.forEach((day, index) => {
+                const tab = document.createElement('button');
+                tab.className = 'day-tab';
+                tab.textContent = day.substring(0, 2); // Mo, Di, Mi, Do, Fr
+                tab.dataset.day = day;
+                tab.onclick = () => switchMobileDay(day);
+                
+                if (index === 0) {
+                    tab.classList.add('active');
+                }
+                
+                dayTabsContainer.appendChild(tab);
+            });
+        }
+
+        // Funktion zum Umschalten des mobilen Tages
+        function switchMobileDay(day) {
+            currentMobileDay = day;
+            
+            // Update Tab-Status
+            document.querySelectorAll('.day-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.day === day) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Show/hide mobile day containers
+            document.querySelectorAll('.mobile-day-schedule').forEach(container => {
+                if (container.id === `mobile-${day}`) {
+                    container.style.display = 'block';
+                } else {
+                    container.style.display = 'none';
+                }
+            });
+            
+            // Update mobile schedule display
+            updateMobileScheduleDisplay();
+        }
+
+        // Funktion zum Umschalten des "Alle anzeigen" Filters
+        function toggleShowAll() {
+            showAllActive = !showAllActive;
+            const showAllBtn = document.querySelector('.show-all');
+            
+            if (showAllActive) {
+                showAllBtn.classList.add('active');
+                selectedTeachers.clear();
+                document.querySelectorAll('.filter-btn:not(.show-all)').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            } else {
+                showAllBtn.classList.remove('active');
+            }
+            
+            updateScheduleDisplay();
+            updateMobileScheduleDisplay();
+        }
+
+        // Funktion zum Umschalten eines Lehrer-Filters
+        function toggleTeacher(teacherId) {
+            const showAllBtn = document.querySelector('.show-all');
+            showAllBtn.classList.remove('active');
+            showAllActive = false;
+
+            if (selectedTeachers.has(teacherId)) {
+                selectedTeachers.delete(teacherId);
+            } else {
+                selectedTeachers.add(teacherId);
+            }
+
+            // Update Button-Status
+            document.querySelectorAll('.filter-btn:not(.show-all)').forEach(btn => {
+                const btnTeacherId = parseInt(btn.textContent.split(' ').pop());
+                if (selectedTeachers.has(btnTeacherId)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            updateScheduleDisplay();
+            updateMobileScheduleDisplay();
+        }
+
+        // Funktion zum Aktualisieren der Desktop-Anzeige
+        function updateScheduleDisplay() {
+            const cells = document.querySelectorAll('.schedule-cell');
+            
+            cells.forEach(cell => {
+                const teacherId = cell.dataset.teacherId;
+                
+                if (showAllActive) {
+                    cell.classList.remove('filtered', 'highlighted');
+                } else if (selectedTeachers.size === 0) {
+                    cell.classList.add('filtered');
+                    cell.classList.remove('highlighted');
+                } else if (teacherId && selectedTeachers.has(parseInt(teacherId))) {
+                    cell.classList.add('highlighted');
+                    cell.classList.remove('filtered');
+                } else {
+                    cell.classList.add('filtered');
+                    cell.classList.remove('highlighted');
+                }
+            });
+        }
+
+        // Funktion zum Aktualisieren der mobilen Anzeige
+        function updateMobileScheduleDisplay() {
+            // Selektiere nur die Zellen des aktuell sichtbaren Tages
+            const currentDayContainer = document.getElementById(`mobile-${currentMobileDay}`);
+            if (!currentDayContainer) return;
+            
+            const cells = currentDayContainer.querySelectorAll('.mobile-schedule-cell');
+            
+            cells.forEach(cell => {
+                const teacherId = cell.dataset.teacherId;
+                
+                if (showAllActive) {
+                    cell.classList.remove('filtered', 'highlighted');
+                } else if (selectedTeachers.size === 0) {
+                    cell.classList.add('filtered');
+                    cell.classList.remove('highlighted');
+                } else if (teacherId && selectedTeachers.has(parseInt(teacherId))) {
+                    cell.classList.add('highlighted');
+                    cell.classList.remove('filtered');
+                } else {
+                    cell.classList.add('filtered');
+                    cell.classList.remove('highlighted');
+                }
+            });
+        }
+
+        // Funktion zum Erstellen der Desktop-Stundenplan-Tabelle
+        function createScheduleTable() {
+            const table = document.getElementById('scheduleTable');
+            
+            // Header-Zeile mit Tagen
+            const headerRow = document.createElement('tr');
+            headerRow.appendChild(createHeaderCell('Zeit', 'time-column'));
+            
+            scheduleData.days.forEach(day => {
+                const dayCell = createHeaderCell(day, 'day-header');
+                dayCell.colSpan = 4;
+                headerRow.appendChild(dayCell);
+            });
+            
+            table.appendChild(headerRow);
+
+            // Schulstufen-Header
+            const gradeRow = document.createElement('tr');
+            gradeRow.appendChild(createHeaderCell('', 'time-column'));
+            
+            scheduleData.days.forEach(() => {
+                scheduleData.grades.forEach(grade => {
+                    gradeRow.appendChild(createHeaderCell(grade, 'grade-header'));
+                });
+            });
+            
+            table.appendChild(gradeRow);
+
+            // Stundenplan-Zeilen
+            scheduleData.times.forEach(time => {
+                const timeRow = document.createElement('tr');
+                timeRow.appendChild(createHeaderCell(time, 'time-column'));
+                
+                scheduleData.days.forEach(day => {
+                    const daySchedule = scheduleData.schedule[day][time] || ['', '', '', ''];
+                    
+                    daySchedule.forEach((cellData, gradeIndex) => {
+                        const cell = createScheduleCell(cellData, time, day, gradeIndex);
+                        timeRow.appendChild(cell);
+                    });
+                });
+                
+                table.appendChild(timeRow);
+            });
+        }
+
+        // Funktion zum Erstellen der mobilen Stundenplan-Tabellen
+        function createMobileScheduleTables() {
+            const container = document.getElementById('mobileScheduleContainer');
+            
+            scheduleData.days.forEach(day => {
+                const dayContainer = document.createElement('div');
+                dayContainer.className = 'mobile-day-schedule';
+                dayContainer.id = `mobile-${day}`;
+                dayContainer.style.display = day === 'Montag' ? 'block' : 'none';
+                
+                const dayTitle = document.createElement('h2');
+                dayTitle.className = 'mobile-day-title';
+                dayTitle.textContent = day;
+                dayContainer.appendChild(dayTitle);
+                
+                const table = document.createElement('table');
+                table.className = 'mobile-schedule-table';
+                
+                // Header-Zeile
+                const headerRow = document.createElement('tr');
+                headerRow.appendChild(createHeaderCell('Zeit', 'mobile-time-column'));
+                
+                scheduleData.grades.forEach(grade => {
+                    headerRow.appendChild(createHeaderCell(grade, 'mobile-grade-header'));
+                });
+                
+                table.appendChild(headerRow);
+                
+                // Daten-Zeilen
+                scheduleData.times.forEach(time => {
+                    const timeRow = document.createElement('tr');
+                    timeRow.appendChild(createHeaderCell(time, 'mobile-time-column'));
+                    
+                    const daySchedule = scheduleData.schedule[day][time] || ['', '', '', ''];
+                    
+                    daySchedule.forEach((cellData, gradeIndex) => {
+                        const cell = createMobileScheduleCell(cellData, time, day, gradeIndex);
+                        timeRow.appendChild(cell);
+                    });
+                    
+                    table.appendChild(timeRow);
+                });
+                
+                dayContainer.appendChild(table);
+                container.appendChild(dayContainer);
+            });
+        }
+
+        // Hilfsfunktion zum Erstellen von Header-Zellen
+        function createHeaderCell(text, className) {
+            const cell = document.createElement('th');
+            cell.textContent = text;
+            cell.className = className;
+            return cell;
+        }
+
+        // Hilfsfunktion zum Erstellen von Desktop-Stundenplan-Zellen
+        function createScheduleCell(cellData, time, day, gradeIndex) {
+            const cell = document.createElement('td');
+            const parsed = parseCellData(cellData);
+            
+            if (parsed.subject === '') {
+                cell.className = 'schedule-cell empty-cell';
+                cell.textContent = '';
+            } else {
+                const teacherClass = parsed.teacher ? `teacher-${parsed.teacher}` : '';
+                cell.className = `schedule-cell ${teacherClass}`;
+                cell.textContent = `${parsed.subject}${parsed.teacher || ''}`;
+                
+                if (parsed.teacher) {
+                    cell.dataset.teacherId = parsed.teacher;
+                }
+            }
+            
+            return cell;
+        }
+
+        // Hilfsfunktion zum Erstellen von mobilen Stundenplan-Zellen
+        function createMobileScheduleCell(cellData, time, day, gradeIndex) {
+            const cell = document.createElement('td');
+            const parsed = parseCellData(cellData);
+            
+            if (parsed.subject === '') {
+                cell.className = 'mobile-schedule-cell empty-cell';
+                cell.textContent = '';
+            } else {
+                const teacherClass = parsed.teacher ? `teacher-${parsed.teacher}` : '';
+                cell.className = `mobile-schedule-cell ${teacherClass}`;
+                cell.textContent = `${parsed.subject}${parsed.teacher || ''}`;
+                
+                if (parsed.teacher) {
+                    cell.dataset.teacherId = parsed.teacher;
+                }
+            }
+            
+            return cell;
+        }
+
+        // Initialisierung
+        document.addEventListener('DOMContentLoaded', function() {
+            createFilterButtons();
+            createDayNavigation();
+            createScheduleTable();
+            createMobileScheduleTables();
+        });
+    </script>
+</body>
+</html> 
