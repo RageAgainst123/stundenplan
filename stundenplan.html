@@ -42,6 +42,17 @@
             border-bottom: 1px solid #dee2e6;
         }
 
+        .filter-select {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            background-color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            min-width: 140px;
+        }
+
         .filter-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -132,11 +143,12 @@
         }
 
         .time-column {
-            background-color: #e9ecef;
+            background: linear-gradient(90deg, #e9ecef, #f1f1f1);
             font-weight: bold;
             position: sticky;
             left: 0;
             z-index: 5;
+            font-size: 0.9em;
         }
 
         .day-header {
@@ -249,6 +261,11 @@
             border-color: #666;
             color: #f8f9fa;
         }
+        body.dark-mode .filter-select {
+            background-color: #444;
+            border-color: #666;
+            color: #f8f9fa;
+        }
         body.dark-mode .schedule-table,
         body.dark-mode .mobile-schedule-table {
             background-color: #1e1e1e;
@@ -338,9 +355,10 @@
         }
 
         .mobile-time-column {
-            background-color: #e9ecef;
+            background: linear-gradient(90deg, #e9ecef, #f1f1f1);
             font-weight: bold;
             width: 100px;
+            font-size: 0.9em;
         }
 
         .mobile-grade-header {
@@ -518,6 +536,15 @@
             { id: 10, name: 'PLAN', color: '#40e0d0' }
         ];
 
+        const dayIcons = {
+            'Montag': '🌞',
+            'Dienstag': '🚀',
+            'Mittwoch': '🐫',
+            'Donnerstag': '⚡',
+            'Freitag': '🎉'
+        };
+        const timeIcon = '⏰';
+
         // Stundenplan-Daten
         const scheduleData = {
             times: [
@@ -636,7 +663,8 @@
             scheduleData.days.forEach((day, index) => {
                 const tab = document.createElement('button');
                 tab.className = 'day-tab';
-                tab.textContent = day.substring(0, 2); // Mo, Di, Mi, Do, Fr
+                const shortDay = day.substring(0, 2);
+                tab.textContent = `${dayIcons[day]} ${shortDay}`;
                 tab.dataset.day = day;
                 tab.onclick = () => switchMobileDay(day);
                 
@@ -772,10 +800,10 @@
             
             // Header-Zeile mit Tagen
             const headerRow = document.createElement('tr');
-            headerRow.appendChild(createHeaderCell('Zeit', 'time-column'));
+            headerRow.appendChild(createHeaderCell(`${timeIcon} Zeit`, 'time-column'));
             
             scheduleData.days.forEach(day => {
-                const dayCell = createHeaderCell(day, 'day-header');
+                const dayCell = createHeaderCell(`${dayIcons[day]} ${day}`, 'day-header');
                 dayCell.colSpan = 4;
                 headerRow.appendChild(dayCell);
             });
@@ -785,10 +813,12 @@
             // Schulstufen-Header
             const gradeRow = document.createElement('tr');
             gradeRow.appendChild(createHeaderCell('', 'time-column'));
-            
+
             scheduleData.days.forEach(() => {
-                scheduleData.grades.forEach(grade => {
-                    gradeRow.appendChild(createHeaderCell(grade, 'grade-header'));
+                scheduleData.grades.forEach((grade, gIndex) => {
+                    const cell = createHeaderCell(grade, 'grade-header');
+                    cell.dataset.gradeIndex = gIndex;
+                    gradeRow.appendChild(cell);
                 });
             });
             
@@ -798,13 +828,14 @@
             scheduleData.times.forEach((time, idx) => {
                 const timeRow = document.createElement('tr');
                 timeRow.dataset.timeIndex = idx;
-                timeRow.appendChild(createHeaderCell(time, 'time-column'));
+                timeRow.appendChild(createHeaderCell(`${timeIcon} ${time}`, 'time-column'));
                 
                 scheduleData.days.forEach(day => {
                     const daySchedule = scheduleData.schedule[day][time] || ['', '', '', ''];
                     
                     daySchedule.forEach((cellData, gradeIndex) => {
                         const cell = createScheduleCell(cellData, time, day, gradeIndex);
+                        cell.dataset.gradeIndex = gradeIndex;
                         timeRow.appendChild(cell);
                     });
                 });
@@ -822,10 +853,10 @@
                 dayContainer.className = 'mobile-day-schedule';
                 dayContainer.id = `mobile-${day}`;
                 dayContainer.style.display = day === 'Montag' ? 'block' : 'none';
-                
+
                 const dayTitle = document.createElement('h2');
                 dayTitle.className = 'mobile-day-title';
-                dayTitle.textContent = day;
+                dayTitle.textContent = `${dayIcons[day]} ${day}`;
                 dayContainer.appendChild(dayTitle);
                 
                 const table = document.createElement('table');
@@ -833,10 +864,12 @@
                 
                 // Header-Zeile
                 const headerRow = document.createElement('tr');
-                headerRow.appendChild(createHeaderCell('Zeit', 'mobile-time-column'));
-                
-                scheduleData.grades.forEach(grade => {
-                    headerRow.appendChild(createHeaderCell(grade, 'mobile-grade-header'));
+                headerRow.appendChild(createHeaderCell(`${timeIcon} Zeit`, 'mobile-time-column'));
+
+                scheduleData.grades.forEach((grade, gIndex) => {
+                    const cell = createHeaderCell(grade, 'mobile-grade-header');
+                    cell.dataset.gradeIndex = gIndex;
+                    headerRow.appendChild(cell);
                 });
                 
                 table.appendChild(headerRow);
@@ -845,12 +878,13 @@
                 scheduleData.times.forEach((time, idx) => {
                     const timeRow = document.createElement('tr');
                     timeRow.dataset.timeIndex = idx;
-                    timeRow.appendChild(createHeaderCell(time, 'mobile-time-column'));
-                    
+                    timeRow.appendChild(createHeaderCell(`${timeIcon} ${time}`, 'mobile-time-column'));
+
                     const daySchedule = scheduleData.schedule[day][time] || ['', '', '', ''];
-                    
+
                     daySchedule.forEach((cellData, gradeIndex) => {
                         const cell = createMobileScheduleCell(cellData, time, day, gradeIndex);
+                        cell.dataset.gradeIndex = gradeIndex;
                         timeRow.appendChild(cell);
                     });
                     
@@ -909,6 +943,7 @@
                 }
             }
             
+            cell.dataset.gradeIndex = gradeIndex;
             return cell;
         }
 
@@ -948,13 +983,51 @@
             });
         }
 
+        // Dropdown zur Auswahl einer Schulstufe
+        function createGradeSelect() {
+            const container = document.querySelector('.filter-section');
+            const select = document.createElement('select');
+            select.id = 'gradeSelect';
+            select.className = 'filter-select';
+
+            const allOption = document.createElement('option');
+            allOption.value = 'all';
+            allOption.textContent = 'Alle Schulstufen';
+            select.appendChild(allOption);
+
+            scheduleData.grades.forEach((grade, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = grade;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', updateGradeView);
+            container.appendChild(select);
+        }
+
+        function updateGradeView() {
+            const select = document.getElementById('gradeSelect');
+            if (!select) return;
+            const value = select.value;
+            document.querySelectorAll('[data-grade-index]').forEach(el => {
+                if (value === 'all' || el.dataset.gradeIndex === value) {
+                    el.style.display = '';
+                } else {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
         // Initialisierung
         document.addEventListener('DOMContentLoaded', function() {
             createFilterButtons();
             createDayNavigation();
+            createGradeSelect();
             createScheduleTable();
             createMobileScheduleTables();
             setupDarkModeToggle();
+            updateGradeView();
             highlightCurrentTime();
             setInterval(highlightCurrentTime, 60000);
         });
